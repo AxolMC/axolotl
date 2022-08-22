@@ -29,6 +29,7 @@ import static dev.axolotlmc.axolotl.AxolotlMod.GSON;
  */
 @RequiredArgsConstructor
 public class ResourcePack {
+
     private static final int MIN_CODE = 42000;
     private static final String[] DEFAULT_DIRS = new String[]{"textures", "lang", "shaders", "sounds",
             "blockstates", "optifine", "models"};
@@ -115,6 +116,11 @@ public class ResourcePack {
         FileUtils.deleteDirectory(prodDir);
 
         // Upload pack to bucket
+        if (!this.mod.getConfig().getBucketConfig().isUpload()) {
+            AxolotlMod.LOGGER.warn("Cancelling pack upload to bucket due to configuration..");
+            return;
+        }
+
         AxolotlMod.LOGGER.info("Uploading pack to bucket..");
 
         final RequestBody formBody = new MultipartBody.Builder()
@@ -152,6 +158,8 @@ public class ResourcePack {
                 AxolotlMod.LOGGER.info("Got new hash in " + (System.currentTimeMillis() - start) + "ms: " + hash);
 
                 ResourcePack.this.lastReceivedPackHash = hash;
+
+                ResourcePack.this.mod.updatePackUrlAndHash(String.format(ResourcePack.this.mod.getDownloadPackApiUrl(), hash), hash);
             }
         });
     }

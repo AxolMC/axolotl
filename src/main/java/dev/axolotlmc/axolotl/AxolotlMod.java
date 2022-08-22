@@ -31,6 +31,8 @@ public class AxolotlMod implements ModInitializer {
 
 
     @Getter private File modFolder;
+    @Getter private File configFile;
+
     @Getter private AxolotlConfig config;
     @Getter private ResourcePack resourcePack;
 
@@ -45,15 +47,15 @@ public class AxolotlMod implements ModInitializer {
         this.modFolder = new File("mods/Axolotl");
 
         // Initialize config
-        final File configFile = new File(this.modFolder, "config.json");
+        this.configFile = new File(this.modFolder, "config.json");
 
-        if (!configFile.exists()) {
+        if (!this.configFile.exists()) {
             LOGGER.error("Config not found! Axolotl is not able to start!");
             return;
         }
 
         try {
-            this.config = GSON.fromJson(FileUtils.readFileToString(configFile, StandardCharsets.UTF_8), AxolotlConfig.class);
+            this.config = GSON.fromJson(FileUtils.readFileToString(this.configFile, StandardCharsets.UTF_8), AxolotlConfig.class);
         } catch (final IOException e) {
             e.printStackTrace();
         }
@@ -90,16 +92,26 @@ public class AxolotlMod implements ModInitializer {
             LOGGER.error("Fatal error while generating resourcepack", e);
         }
 
-        // DEBUG
+        // Send pack to player
         final ResourcePackConfig resourcePackConfig = this.config.getResourcePackConfig();
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+        ServerPlayConnectionEvents.INIT.register((handler, server) -> {
+            if (!this.config.getResourcePackConfig().isSendPackOnJoin()) {
+                LOGGER.warn("Cancelling pack send to player due to configuration..");
+                return;
+            }
+
+            if (this.config.getHash() == null || this.config.getHash().isEmpty()) {
+                LOGGER.warn("Unable to send resource pack to player as hash is null or empty");
+                return;
+            }
+
             final ResourcePackSendS2CPacket resourcePackSendS2CPacket = new ResourcePackSendS2CPacket(
-                    String.format(this.downloadPackApiUrl, this.resourcePack.getLastReceivedPackHash()),
-                    this.resourcePack.getLastReceivedPackHash(),
+                    this.config.getPackUrl(),
+                    this.config.getHash(),
                     resourcePackConfig.isForcePack(),
                     resourcePackConfig.getPromptMessage() == null ? null : Text.literal(resourcePackConfig.getPromptMessage())
             );
-            sender.sendPacket(resourcePackSendS2CPacket);
+            handler.player.networkHandler.sendPacket(resourcePackSendS2CPacket);
 
             handler.player.sendMessage(Text.literal(this.resourcePack.shift(67, true)).append(Text.literal("Hey!")));
         });
@@ -140,5 +152,11 @@ public class AxolotlMod implements ModInitializer {
         final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestProperty("X-API-Key", apiKey);
         FileUtils.copyInputStreamToFile(connection.getInputStream(), output);
+    }
+
+    public void updatePackUrlAndHash(final String url, final String hash) throws IOException {
+        this.config.setPackUrl(url);
+        this.config.setHash(hash);
+        FileUtils.writeStringToFile(this.configFile, GSON.toJson(this.config), StandardCharsets.UTF_8);
     }
 }

@@ -15,6 +15,9 @@ public class AxolotlConfig {
     @SerializedName("url")
     @Setter private String packUrl;
 
+    @SerializedName("hash")
+    @Setter private String hash;
+
     @SerializedName("bucket")
     private final BucketConfig bucketConfig;
 
