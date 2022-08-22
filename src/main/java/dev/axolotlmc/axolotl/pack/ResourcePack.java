@@ -1,7 +1,9 @@
 package dev.axolotlmc.axolotl.pack;
 
 import com.google.common.reflect.TypeToken;
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import dev.axolotlmc.axolotl.AxolotlMod;
 import dev.axolotlmc.axolotl.api.AxolotlSound;
 import dev.axolotlmc.axolotl.api.Glyph;
@@ -19,15 +21,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.Deflater;
+
+import static dev.axolotlmc.axolotl.AxolotlMod.GSON;
 
 /**
  * @author Kenox
  */
 @RequiredArgsConstructor
 public class ResourcePack {
-
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int MIN_CODE = 42000;
     private static final String[] DEFAULT_DIRS = new String[]{"textures", "lang", "shaders", "sounds",
             "blockstates", "optifine", "models"};
@@ -37,6 +38,7 @@ public class ResourcePack {
             .writeTimeout(120, TimeUnit.SECONDS)
             .build();
 
+    @Getter private final AxolotlMod mod;
     @Getter private final File packDirectory;
     @Getter private String lastReceivedPackHash;
     @Getter private final List<Glyph> glyphs = new ArrayList<>();
@@ -50,9 +52,9 @@ public class ResourcePack {
         this.loadSounds();
 
         // Initializes final pack files
-        final File compressedPack = new File("mods/Axolotl/pack.zip");
+        final File compressedPack = new File(this.mod.getModFolder(), "pack.zip");
 
-        final File prodDir = new File("mods/Axolotl/pack-prod");
+        final File prodDir = new File(this.mod.getModFolder(), "pack-prod");
         if (prodDir.exists())
             prodDir.delete();
         prodDir.mkdirs();
@@ -65,12 +67,12 @@ public class ResourcePack {
 
         // Create default dirs and move them correctly
         for (final String defaultDir : DEFAULT_DIRS) {
-            final File defaultDirFile = new File("mods/Axolotl/pack-prod/" + defaultDir);
+            final File defaultDirFile = new File(this.mod.getModFolder(), "pack-prod/" + defaultDir);
 
             if (!defaultDirFile.exists())
                 defaultDirFile.mkdirs();
 
-            final File targetDir = new File("mods/Axolotl/pack-prod/assets/minecraft/" + defaultDir);
+            final File targetDir = new File(this.mod.getModFolder(), "pack-prod/assets/minecraft/" + defaultDir);
 
             if (targetDir.exists())
                 targetDir.delete();
@@ -79,7 +81,7 @@ public class ResourcePack {
         }
 
         // Create sounds.json with "axolotl" as namespace
-        final File namespaceDir = new File("mods/Axolotl/pack-prod/assets/axolotl");
+        final File namespaceDir = new File(this.mod.getModFolder(), "pack-prod/assets/axolotl");
 
         if (namespaceDir.exists())
             namespaceDir.delete();
@@ -108,7 +110,7 @@ public class ResourcePack {
 
         FileUtils.writeStringToFile(prodSoundsFile, soundsObject.toString(), StandardCharsets.UTF_8);
 
-        ZipUtil.pack(prodDir, compressedPack, Deflater.BEST_COMPRESSION);
+        ZipUtil.pack(prodDir, compressedPack, this.mod.getConfig().getResourcePackConfig().getPackCompression());
 
         FileUtils.deleteDirectory(prodDir);
 
@@ -122,8 +124,8 @@ public class ResourcePack {
                 .build();
 
         final Request request = new Request.Builder()
-                .url(AxolotlMod.BUCKET_PACK_API_URL)
-                .addHeader("X-API-Key", AxolotlMod.EXPOSED_API_KEY)
+                .url(this.mod.getPackApiUrl())
+                .addHeader("X-API-Key", this.mod.getConfig().getBucketConfig().getBucketApiKey())
                 .put(formBody)
                 .build();
 
@@ -158,7 +160,7 @@ public class ResourcePack {
         // Generate glyphs
         AxolotlMod.LOGGER.info("Generating glyphs..");
 
-        final File glyphFolder = new File("mods/Axolotl/glyphs");
+        final File glyphFolder = new File(this.mod.getModFolder(), "glyphs");
 
         if (!glyphFolder.exists())
             glyphFolder.mkdirs();
@@ -189,7 +191,7 @@ public class ResourcePack {
 
     private void loadSounds() throws IOException {
         // Load sounds
-        final File soundsFile = new File("mods/Axolotl/sounds.json");
+        final File soundsFile = new File(this.mod.getModFolder(), "sounds.json");
 
         if (soundsFile.exists()) {
             this.axolotlSounds = GSON.fromJson(FileUtils.readFileToString(soundsFile, StandardCharsets.UTF_8),
@@ -202,7 +204,7 @@ public class ResourcePack {
 
     private void generateFontFile() throws IOException {
         // Generate font file
-        final File defaultFontDir = new File("mods/Axolotl/pack-prod/assets/minecraft/font/");
+        final File defaultFontDir = new File(this.mod.getModFolder(), "pack-prod/assets/minecraft/font/");
         defaultFontDir.mkdirs();
         final File defaultFontFile = new File(defaultFontDir, "default.json");
         defaultFontFile.createNewFile();

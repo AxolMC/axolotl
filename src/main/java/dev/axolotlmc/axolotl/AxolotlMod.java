@@ -1,7 +1,12 @@
 package dev.axolotlmc.axolotl;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import dev.axolotlmc.axolotl.api.config.AxolotlConfig;
+import dev.axolotlmc.axolotl.api.config.bucket.ResourcePackConfig;
 import dev.axolotlmc.axolotl.pack.ResourcePack;
 import dev.axolotlmc.axolotl.util.ZipUtil;
+import lombok.Getter;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.packet.s2c.play.ResourcePackSendS2CPacket;
@@ -14,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author Kenox
@@ -21,29 +27,50 @@ import java.net.URL;
 public class AxolotlMod implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("axolotl");
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    private static final String BUCKET_API_URL = "http://127.0.0.1:8080/v1/%s";
-    public static final String BUCKET_MODFOLDER_API_URL = String.format(BUCKET_API_URL, "modfolder");
-    public static final String BUCKET_PACK_API_URL = String.format(BUCKET_API_URL, "pack");
-    public static final String BUCKET_DOWNLOAD_PACK_API_URL = String.format(BUCKET_API_URL, "pack?hash=%s");
 
-    public static final String EXPOSED_API_KEY = "ca9edc42-b088-45bb-9583-8be7542019e7";
+    @Getter private File modFolder;
+    @Getter private AxolotlConfig config;
+    @Getter private ResourcePack resourcePack;
 
-    private ResourcePack resourcePack;
+    @Getter private String modFolderApiUrl;
+    @Getter public String packApiUrl;
+    @Getter public String downloadPackApiUrl;
 
     @Override
     public void onInitialize() {
         LOGGER.info("Axolotl is getting ready..");
 
-        // Initialize mod folder
-        final File modFolder = new File("mods/Axolotl");
+        this.modFolder = new File("mods/Axolotl");
 
-        if (!modFolder.exists()) {
+        // Initialize config
+        final File configFile = new File(this.modFolder, "config.json");
+
+        if (!configFile.exists()) {
+            LOGGER.error("Config not found! Axolotl is not able to start!");
+            return;
+        }
+
+        try {
+            this.config = GSON.fromJson(FileUtils.readFileToString(configFile, StandardCharsets.UTF_8), AxolotlConfig.class);
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+
+        // Initialize api urls
+        final String bucketApiUrl = this.config.getBucketConfig().getBucketApiUrl();
+        this.modFolderApiUrl = String.format(bucketApiUrl, "modfolder");
+        this.packApiUrl = String.format(bucketApiUrl, "pack");
+        this.downloadPackApiUrl = String.format(bucketApiUrl, "pack?hash=%s");
+
+        // Initialize mod folder
+        if (!this.modFolder.exists()) {
             LOGGER.info("Mod directory does not exist. Starting download..");
 
             try {
                 final File outputFile = new File("mods/Axolotl.zip");
-                this.downloadFile(new URL(BUCKET_MODFOLDER_API_URL), outputFile, EXPOSED_API_KEY);
+                this.downloadFile(new URL(this.modFolderApiUrl), outputFile, this.config.getBucketConfig().getBucketApiKey());
                 ZipUtil.unZip(outputFile, new File("mods/"));
                 outputFile.delete();
                 LOGGER.info("Mod directory download finished");
@@ -55,8 +82,8 @@ public class AxolotlMod implements ModInitializer {
         }
 
         // Initialize resource pack
-        final File packDirectory = new File("mods/Axolotl/pack");
-        this.resourcePack = new ResourcePack(packDirectory);
+        final File packDirectory = new File(this.modFolder, "pack");
+        this.resourcePack = new ResourcePack(this, packDirectory);
         try {
             this.resourcePack.generate();
         } catch (final IOException e) {
@@ -64,12 +91,13 @@ public class AxolotlMod implements ModInitializer {
         }
 
         // DEBUG
+        final ResourcePackConfig resourcePackConfig = this.config.getResourcePackConfig();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             final ResourcePackSendS2CPacket resourcePackSendS2CPacket = new ResourcePackSendS2CPacket(
-                    String.format(BUCKET_DOWNLOAD_PACK_API_URL, this.resourcePack.getLastReceivedPackHash()),
+                    String.format(this.downloadPackApiUrl, this.resourcePack.getLastReceivedPackHash()),
                     this.resourcePack.getLastReceivedPackHash(),
-                    true,
-                    Text.literal("RESOURCEPACK NEEDED!")
+                    resourcePackConfig.isForcePack(),
+                    resourcePackConfig.getPromptMessage() == null ? null : Text.literal(resourcePackConfig.getPromptMessage())
             );
             sender.sendPacket(resourcePackSendS2CPacket);
 
