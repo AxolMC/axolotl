@@ -43,51 +43,13 @@ public class ResourcePack {
     @Getter private List<AxolotlSound> axolotlSounds = new ArrayList<>();
 
     public void generate() throws IOException {
-        // Generate glyphs
-        AxolotlMod.LOGGER.info("Generating glyphs..");
+        // Generate all glyphs (files with ".json"-suffix inside "glyphs" directory)
+        this.generateGlyphs();
 
-        final File glyphFolder = new File("mods/Axolotl/glyphs");
+        // Load sounds into "axolotl" namespace
+        this.loadSounds();
 
-        if (!glyphFolder.exists())
-            glyphFolder.mkdirs();
-
-        for (final File file : glyphFolder.listFiles()) {
-            if (file.isDirectory()) {
-                AxolotlMod.LOGGER.warn("Directories for glyphs are currently not supported! (" + file.getAbsolutePath() + ")");
-                continue;
-            }
-
-            if (!file.getName().endsWith(".json")) {
-                AxolotlMod.LOGGER.warn("Skipping glyph file " + file.getName() + " as it does not end with '.json'");
-                continue;
-            }
-
-            final List<Glyph> foundGlyphs = GSON.fromJson(FileUtils.readFileToString(file, StandardCharsets.UTF_8),
-                    new TypeToken<List<Glyph>>() {
-                    }.getType());
-
-            foundGlyphs.forEach(glyph -> {
-                this.glyphs.add(glyph);
-                glyph.setCharacter((char) this.getFirstCode(MIN_CODE));
-            });
-
-            AxolotlMod.LOGGER.info("Found " + foundGlyphs.size() + " glyphs (" + file.getName() + ")");
-        }
-
-        // Load sounds
-        final File soundsFile = new File("mods/Axolotl/sounds.json");
-
-        if (soundsFile.exists()) {
-            this.axolotlSounds = GSON.fromJson(FileUtils.readFileToString(soundsFile, StandardCharsets.UTF_8),
-                    new TypeToken<List<AxolotlSound>>() {
-                    }.getType());
-
-            AxolotlMod.LOGGER.info("Found " + this.axolotlSounds.size() + " custom sounds");
-        }
-
-        // Compress pack
-        AxolotlMod.LOGGER.info("Compressing pack..");
-
+        // Initializes final pack files
         final File compressedPack = new File("mods/Axolotl/pack.zip");
 
         final File prodDir = new File("mods/Axolotl/pack-prod");
@@ -95,33 +57,10 @@ public class ResourcePack {
             prodDir.delete();
         prodDir.mkdirs();
 
-        // Generate font file
-        final File defaultFontDir = new File("mods/Axolotl/pack-prod/assets/minecraft/font/");
-        defaultFontDir.mkdirs();
-        final File defaultFontFile = new File(defaultFontDir, "default.json");
-        defaultFontFile.createNewFile();
+        // Generate "default.json" inside font directory
+        this.generateFontFile();
 
-        final JsonObject fontObject = new JsonObject();
-        final JsonArray providersArray = new JsonArray();
-
-        this.glyphs.forEach(glyph -> {
-            final JsonObject glyphObject = new JsonObject();
-
-            final JsonArray charsArray = new JsonArray();
-            charsArray.add(glyph.getCharacter().toString());
-            glyphObject.add("chars", charsArray);
-
-            glyphObject.add("file", new JsonPrimitive(glyph.getTexture()));
-            glyphObject.add("ascent", new JsonPrimitive(glyph.getAscent()));
-            glyphObject.add("height", new JsonPrimitive(glyph.getHeight()));
-            glyphObject.add("type", new JsonPrimitive("bitmap"));
-
-            providersArray.add(glyphObject);
-        });
-
-        fontObject.add("providers", providersArray);
-        FileUtils.writeStringToFile(defaultFontFile, fontObject.toString(), StandardCharsets.UTF_8);
-
+        // Copy axolotl pack to a production directory, so we can proceed generating anything
         FileUtils.copyDirectory(this.packDirectory, prodDir);
 
         // Create default dirs and move them correctly
@@ -213,6 +152,81 @@ public class ResourcePack {
                 ResourcePack.this.lastReceivedPackHash = hash;
             }
         });
+    }
+
+    private void generateGlyphs() throws IOException {
+        // Generate glyphs
+        AxolotlMod.LOGGER.info("Generating glyphs..");
+
+        final File glyphFolder = new File("mods/Axolotl/glyphs");
+
+        if (!glyphFolder.exists())
+            glyphFolder.mkdirs();
+
+        for (final File file : glyphFolder.listFiles()) {
+            if (file.isDirectory()) {
+                AxolotlMod.LOGGER.warn("Directories for glyphs are currently not supported! (" + file.getAbsolutePath() + ")");
+                continue;
+            }
+
+            if (!file.getName().endsWith(".json")) {
+                AxolotlMod.LOGGER.warn("Skipping glyph file " + file.getName() + " as it does not end with '.json'");
+                continue;
+            }
+
+            final List<Glyph> foundGlyphs = GSON.fromJson(FileUtils.readFileToString(file, StandardCharsets.UTF_8),
+                    new TypeToken<List<Glyph>>() {
+                    }.getType());
+
+            foundGlyphs.forEach(glyph -> {
+                this.glyphs.add(glyph);
+                glyph.setCharacter((char) this.getFirstCode(MIN_CODE));
+            });
+
+            AxolotlMod.LOGGER.info("Found " + foundGlyphs.size() + " glyphs (" + file.getName() + ")");
+        }
+    }
+
+    private void loadSounds() throws IOException {
+        // Load sounds
+        final File soundsFile = new File("mods/Axolotl/sounds.json");
+
+        if (soundsFile.exists()) {
+            this.axolotlSounds = GSON.fromJson(FileUtils.readFileToString(soundsFile, StandardCharsets.UTF_8),
+                    new TypeToken<List<AxolotlSound>>() {
+                    }.getType());
+
+            AxolotlMod.LOGGER.info("Found " + this.axolotlSounds.size() + " custom sounds");
+        }
+    }
+
+    private void generateFontFile() throws IOException {
+        // Generate font file
+        final File defaultFontDir = new File("mods/Axolotl/pack-prod/assets/minecraft/font/");
+        defaultFontDir.mkdirs();
+        final File defaultFontFile = new File(defaultFontDir, "default.json");
+        defaultFontFile.createNewFile();
+
+        final JsonObject fontObject = new JsonObject();
+        final JsonArray providersArray = new JsonArray();
+
+        this.glyphs.forEach(glyph -> {
+            final JsonObject glyphObject = new JsonObject();
+
+            final JsonArray charsArray = new JsonArray();
+            charsArray.add(glyph.getCharacter().toString());
+            glyphObject.add("chars", charsArray);
+
+            glyphObject.add("file", new JsonPrimitive(glyph.getTexture()));
+            glyphObject.add("ascent", new JsonPrimitive(glyph.getAscent()));
+            glyphObject.add("height", new JsonPrimitive(glyph.getHeight()));
+            glyphObject.add("type", new JsonPrimitive("bitmap"));
+
+            providersArray.add(glyphObject);
+        });
+
+        fontObject.add("providers", providersArray);
+        FileUtils.writeStringToFile(defaultFontFile, fontObject.toString(), StandardCharsets.UTF_8);
     }
 
     private int getFirstCode(final int i) {
