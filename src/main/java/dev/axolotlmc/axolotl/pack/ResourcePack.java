@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 
@@ -131,7 +132,6 @@ public class ResourcePack {
         // Upload pack to bucket
         AxolotlMod.LOGGER.info("Uploading pack to bucket..");
 
-        // Upload world to backblaze
         RequestBody formBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", compressedPack.getName(),
@@ -175,5 +175,35 @@ public class ResourcePack {
         if(this.glyphs.stream().anyMatch(glyph -> glyph.getCharacter() != null && glyph.getCharacter() == (char) i))
             return this.getFirstCode(i + 1);
         return i;
+    }
+
+    public String shift(int length) {
+        return this.shift(length, false);
+    }
+
+    public String shift(int length, boolean right) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        while (length > 0) {
+            int highestOneBit = Integer.highestOneBit(length);
+            Optional<Glyph> optionalGlyph = this.getGlyph((right ? "right_" : "") + "shift_" + highestOneBit);
+
+            if(optionalGlyph.isEmpty()) {
+                AxolotlMod.LOGGER.warn("Glyph with length " + highestOneBit + " does not exist!");
+                break;
+            }
+
+            Glyph glyph = optionalGlyph.get();
+
+            stringBuilder.append(glyph.getCharacter().toString());
+
+            length -= highestOneBit;
+        }
+
+        return stringBuilder.toString();
+    }
+
+    public Optional<Glyph> getGlyph(String name) {
+        return this.glyphs.stream().filter(glyph -> glyph.getName().equals(name)).findFirst();
     }
 }

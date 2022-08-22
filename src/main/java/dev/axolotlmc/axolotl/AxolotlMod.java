@@ -71,6 +71,8 @@ public class AxolotlMod implements ModInitializer {
                     Text.literal("RESOURCEPACK NEEDED!")
             );
             sender.sendPacket(resourcePackSendS2CPacket);
+
+            handler.player.sendMessage(Text.literal(this.resourcePack.shift(67, true)).append(Text.literal("Hey!")));
         });
 
         // DEBUG
