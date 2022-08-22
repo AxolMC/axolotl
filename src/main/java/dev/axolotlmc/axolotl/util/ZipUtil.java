@@ -7,13 +7,9 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/**
- * @author Kenox
- */
 public class ZipUtil {
-
-    public static void unZip(File file, File destination) throws IOException {
-        byte[] buffer = new byte[1024];
+    public static void unZip(final File file, final File destination) throws IOException {
+        final byte[] buffer = new byte[1024];
         final ZipInputStream zis = new ZipInputStream(new FileInputStream(file));
         ZipEntry zipEntry = zis.getNextEntry();
         while (zipEntry != null) {
@@ -23,7 +19,7 @@ public class ZipUtil {
                     throw new IOException("Failed to create directory " + newFile);
                 }
             } else {
-                File parent = newFile.getParentFile();
+                final File parent = newFile.getParentFile();
                 if (!parent.isDirectory() && !parent.mkdirs()) {
                     throw new IOException("Failed to create directory " + parent);
                 }
@@ -41,11 +37,11 @@ public class ZipUtil {
         zis.close();
     }
 
-    private static File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
-        File destFile = new File(destinationDir, zipEntry.getName());
+    private static File newFile(final File destinationDir, final ZipEntry zipEntry) throws IOException {
+        final File destFile = new File(destinationDir, zipEntry.getName());
 
-        String destDirPath = destinationDir.getCanonicalPath();
-        String destFilePath = destFile.getCanonicalPath();
+        final String destDirPath = destinationDir.getCanonicalPath();
+        final String destFilePath = destFile.getCanonicalPath();
 
         if (!destFilePath.startsWith(destDirPath + File.separator)) {
             throw new IOException("Entry is outside of the target dir: " + zipEntry.getName());

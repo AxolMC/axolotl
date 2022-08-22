@@ -21,6 +21,7 @@ import java.net.URL;
 public class AxolotlMod implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("axolotl");
+
     private static final String BUCKET_API_URL = "http://127.0.0.1:8080/v1/%s";
     public static final String BUCKET_MODFOLDER_API_URL = String.format(BUCKET_API_URL, "modfolder");
     public static final String BUCKET_PACK_API_URL = String.format(BUCKET_API_URL, "pack");
@@ -35,18 +36,18 @@ public class AxolotlMod implements ModInitializer {
         LOGGER.info("Axolotl is getting ready..");
 
         // Initialize mod folder
-        File modFolder = new File("mods/Axolotl");
+        final File modFolder = new File("mods/Axolotl");
 
-        if(!modFolder.exists()) {
+        if (!modFolder.exists()) {
             LOGGER.info("Mod directory does not exist. Starting download..");
 
             try {
-                File outputFile = new File("mods/Axolotl.zip");
+                final File outputFile = new File("mods/Axolotl.zip");
                 this.downloadFile(new URL(BUCKET_MODFOLDER_API_URL), outputFile, EXPOSED_API_KEY);
                 ZipUtil.unZip(outputFile, new File("mods/"));
                 outputFile.delete();
                 LOGGER.info("Mod directory download finished");
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 e.printStackTrace();
             }
         } else {
@@ -54,17 +55,17 @@ public class AxolotlMod implements ModInitializer {
         }
 
         // Initialize resource pack
-        File packDirectory = new File("mods/Axolotl/pack");
+        final File packDirectory = new File("mods/Axolotl/pack");
         this.resourcePack = new ResourcePack(packDirectory);
         try {
             this.resourcePack.generate();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             LOGGER.error("Fatal error while generating resourcepack", e);
         }
 
         // DEBUG
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            ResourcePackSendS2CPacket resourcePackSendS2CPacket = new ResourcePackSendS2CPacket(
+            final ResourcePackSendS2CPacket resourcePackSendS2CPacket = new ResourcePackSendS2CPacket(
                     String.format(BUCKET_DOWNLOAD_PACK_API_URL, this.resourcePack.getLastReceivedPackHash()),
                     this.resourcePack.getLastReceivedPackHash(),
                     true,
@@ -107,8 +108,8 @@ public class AxolotlMod implements ModInitializer {
         });*/
     }
 
-    private void downloadFile(URL url, File output, String apiKey) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    private void downloadFile(final URL url, final File output, final String apiKey) throws IOException {
+        final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestProperty("X-API-Key", apiKey);
         FileUtils.copyInputStreamToFile(connection.getInputStream(), output);
     }

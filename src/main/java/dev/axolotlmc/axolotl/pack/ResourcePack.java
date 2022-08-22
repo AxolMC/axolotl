@@ -46,24 +46,25 @@ public class ResourcePack {
         // Generate glyphs
         AxolotlMod.LOGGER.info("Generating glyphs..");
 
-        File glyphFolder = new File("mods/Axolotl/glyphs");
+        final File glyphFolder = new File("mods/Axolotl/glyphs");
 
-        if(!glyphFolder.exists())
+        if (!glyphFolder.exists())
             glyphFolder.mkdirs();
 
-        for (File file : glyphFolder.listFiles()) {
-            if(file.isDirectory()) {
+        for (final File file : glyphFolder.listFiles()) {
+            if (file.isDirectory()) {
                 AxolotlMod.LOGGER.warn("Directories for glyphs are currently not supported! (" + file.getAbsolutePath() + ")");
                 continue;
             }
 
-            if(!file.getName().endsWith(".json")) {
+            if (!file.getName().endsWith(".json")) {
                 AxolotlMod.LOGGER.warn("Skipping glyph file " + file.getName() + " as it does not end with '.json'");
                 continue;
             }
 
-            List<Glyph> foundGlyphs = GSON.fromJson(FileUtils.readFileToString(file, StandardCharsets.UTF_8),
-                    new TypeToken<List<Glyph>>(){}.getType());
+            final List<Glyph> foundGlyphs = GSON.fromJson(FileUtils.readFileToString(file, StandardCharsets.UTF_8),
+                    new TypeToken<List<Glyph>>() {
+                    }.getType());
 
             foundGlyphs.forEach(glyph -> {
                 this.glyphs.add(glyph);
@@ -74,11 +75,12 @@ public class ResourcePack {
         }
 
         // Load sounds
-        File soundsFile = new File("mods/Axolotl/sounds.json");
+        final File soundsFile = new File("mods/Axolotl/sounds.json");
 
-        if(soundsFile.exists()) {
+        if (soundsFile.exists()) {
             this.axolotlSounds = GSON.fromJson(FileUtils.readFileToString(soundsFile, StandardCharsets.UTF_8),
-                    new TypeToken<List<AxolotlSound>>(){}.getType());
+                    new TypeToken<List<AxolotlSound>>() {
+                    }.getType());
 
             AxolotlMod.LOGGER.info("Found " + this.axolotlSounds.size() + " custom sounds");
         }
@@ -86,26 +88,26 @@ public class ResourcePack {
         // Compress pack
         AxolotlMod.LOGGER.info("Compressing pack..");
 
-        File compressedPack = new File("mods/Axolotl/pack.zip");
+        final File compressedPack = new File("mods/Axolotl/pack.zip");
 
-        File prodDir = new File("mods/Axolotl/pack-prod");
-        if(prodDir.exists())
+        final File prodDir = new File("mods/Axolotl/pack-prod");
+        if (prodDir.exists())
             prodDir.delete();
         prodDir.mkdirs();
 
         // Generate font file
-        File defaultFontDir = new File("mods/Axolotl/pack-prod/assets/minecraft/font/");
+        final File defaultFontDir = new File("mods/Axolotl/pack-prod/assets/minecraft/font/");
         defaultFontDir.mkdirs();
-        File defaultFontFile = new File(defaultFontDir, "default.json");
+        final File defaultFontFile = new File(defaultFontDir, "default.json");
         defaultFontFile.createNewFile();
 
-        JsonObject fontObject = new JsonObject();
-        JsonArray providersArray = new JsonArray();
+        final JsonObject fontObject = new JsonObject();
+        final JsonArray providersArray = new JsonArray();
 
         this.glyphs.forEach(glyph -> {
-            JsonObject glyphObject = new JsonObject();
+            final JsonObject glyphObject = new JsonObject();
 
-            JsonArray charsArray = new JsonArray();
+            final JsonArray charsArray = new JsonArray();
             charsArray.add(glyph.getCharacter().toString());
             glyphObject.add("chars", charsArray);
 
@@ -123,42 +125,42 @@ public class ResourcePack {
         FileUtils.copyDirectory(this.packDirectory, prodDir);
 
         // Create default dirs and move them correctly
-        for (String defaultDir : DEFAULT_DIRS) {
-            File defaultDirFile = new File("mods/Axolotl/pack-prod/" + defaultDir);
+        for (final String defaultDir : DEFAULT_DIRS) {
+            final File defaultDirFile = new File("mods/Axolotl/pack-prod/" + defaultDir);
 
-            if(!defaultDirFile.exists())
+            if (!defaultDirFile.exists())
                 defaultDirFile.mkdirs();
 
-            File targetDir = new File("mods/Axolotl/pack-prod/assets/minecraft/" + defaultDir);
+            final File targetDir = new File("mods/Axolotl/pack-prod/assets/minecraft/" + defaultDir);
 
-            if(targetDir.exists())
+            if (targetDir.exists())
                 targetDir.delete();
 
             FileUtils.moveDirectory(defaultDirFile, targetDir);
         }
 
         // Create sounds.json with "axolotl" as namespace
-        File namespaceDir = new File("mods/Axolotl/pack-prod/assets/axolotl");
+        final File namespaceDir = new File("mods/Axolotl/pack-prod/assets/axolotl");
 
-        if(namespaceDir.exists())
+        if (namespaceDir.exists())
             namespaceDir.delete();
 
         namespaceDir.mkdirs();
 
-        File prodSoundsFile = new File(namespaceDir, "sounds.json");
+        final File prodSoundsFile = new File(namespaceDir, "sounds.json");
 
-        if(prodSoundsFile.exists())
+        if (prodSoundsFile.exists())
             prodSoundsFile.delete();
 
         prodSoundsFile.createNewFile();
 
-        JsonObject soundsObject = new JsonObject();
+        final JsonObject soundsObject = new JsonObject();
 
         this.axolotlSounds.forEach(axolotlSound -> {
-            JsonObject soundObject = new JsonObject();
+            final JsonObject soundObject = new JsonObject();
             soundObject.add("category", new JsonPrimitive(axolotlSound.getSoundCategory().getName()));
 
-            JsonArray soundsArray = new JsonArray();
+            final JsonArray soundsArray = new JsonArray();
             soundsArray.add(new JsonPrimitive(axolotlSound.getName()));
             soundObject.add("sounds", soundsArray);
 
@@ -174,36 +176,36 @@ public class ResourcePack {
         // Upload pack to bucket
         AxolotlMod.LOGGER.info("Uploading pack to bucket..");
 
-        RequestBody formBody = new MultipartBody.Builder()
+        final RequestBody formBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart("file", compressedPack.getName(),
                         RequestBody.create(compressedPack, MediaType.parse("application/zip")))
                 .build();
 
-        Request request = new Request.Builder()
+        final Request request = new Request.Builder()
                 .url(AxolotlMod.BUCKET_PACK_API_URL)
                 .addHeader("X-API-Key", AxolotlMod.EXPOSED_API_KEY)
                 .put(formBody)
                 .build();
 
-        long start = System.currentTimeMillis();
+        final long start = System.currentTimeMillis();
 
         HTTP_CLIENT.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void onFailure(@NotNull final Call call, @NotNull final IOException e) {
                 e.printStackTrace();
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                ResponseBody responseBody = response.body();
+            public void onResponse(@NotNull final Call call, @NotNull final Response response) throws IOException {
+                final ResponseBody responseBody = response.body();
 
-                if(responseBody == null) {
+                if (responseBody == null) {
                     AxolotlMod.LOGGER.warn("Bucket responded with null as download URL!");
                     return;
                 }
 
-                String hash = responseBody.string();
+                final String hash = responseBody.string();
                 response.close();
 
                 AxolotlMod.LOGGER.info("Got new hash in " + (System.currentTimeMillis() - start) + "ms: " + hash);
@@ -213,29 +215,29 @@ public class ResourcePack {
         });
     }
 
-    private int getFirstCode(int i) {
-        if(this.glyphs.stream().anyMatch(glyph -> glyph.getCharacter() != null && glyph.getCharacter() == (char) i))
+    private int getFirstCode(final int i) {
+        if (this.glyphs.stream().anyMatch(glyph -> glyph.getCharacter() != null && glyph.getCharacter() == (char) i))
             return this.getFirstCode(i + 1);
         return i;
     }
 
-    public String shift(int length) {
+    public String shift(final int length) {
         return this.shift(length, false);
     }
 
-    public String shift(int length, boolean right) {
-        StringBuilder stringBuilder = new StringBuilder();
+    public String shift(int length, final boolean right) {
+        final StringBuilder stringBuilder = new StringBuilder();
 
         while (length > 0) {
-            int highestOneBit = Integer.highestOneBit(length);
-            Optional<Glyph> optionalGlyph = this.getGlyph((right ? "right_" : "") + "shift_" + highestOneBit);
+            final int highestOneBit = Integer.highestOneBit(length);
+            final Optional<Glyph> optionalGlyph = this.getGlyph((right ? "right_" : "") + "shift_" + highestOneBit);
 
-            if(optionalGlyph.isEmpty()) {
+            if (optionalGlyph.isEmpty()) {
                 AxolotlMod.LOGGER.warn("Glyph with length " + highestOneBit + " does not exist!");
                 break;
             }
 
-            Glyph glyph = optionalGlyph.get();
+            final Glyph glyph = optionalGlyph.get();
 
             stringBuilder.append(glyph.getCharacter().toString());
 
@@ -245,7 +247,7 @@ public class ResourcePack {
         return stringBuilder.toString();
     }
 
-    public Optional<Glyph> getGlyph(String name) {
+    public Optional<Glyph> getGlyph(final String name) {
         return this.glyphs.stream().filter(glyph -> glyph.getName().equals(name)).findFirst();
     }
 }
