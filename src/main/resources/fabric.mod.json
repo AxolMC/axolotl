@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "axolotl",
+  "version": "${version}",
+
+  "name": "Axolotl",
+  "description": "brief description soon",
+  "authors": [
+    "Kenox"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+
+  "license": "CC0-1.0",
+  "icon": "assets/modid/icon.png",
+
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "dev.axolotlmc.axolotl.AxolotlMod"
+    ]
+  },
+  "mixins": [
+
+  ],
+  "accessWidener": "axolotl.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.14.6",
+    "fabric": "*",
+    "minecraft": "~1.19",
+    "java": ">=17"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}
