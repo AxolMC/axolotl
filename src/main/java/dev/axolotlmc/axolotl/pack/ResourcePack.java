@@ -3,13 +3,14 @@ package dev.axolotlmc.axolotl.pack;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.*;
 import dev.axolotlmc.axolotl.AxolotlMod;
+import dev.axolotlmc.axolotl.api.AxolotlSound;
 import dev.axolotlmc.axolotl.api.Glyph;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import okhttp3.*;
+import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.NotNull;
 import org.zeroturnaround.zip.ZipUtil;
-import org.zeroturnaround.zip.commons.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,6 +40,7 @@ public class ResourcePack {
     @Getter private final File packDirectory;
     @Getter private String lastReceivedPackHash;
     @Getter private final List<Glyph> glyphs = new ArrayList<>();
+    @Getter private List<AxolotlSound> axolotlSounds = new ArrayList<>();
 
     public void generate() throws IOException {
         // Generate glyphs
@@ -60,7 +62,7 @@ public class ResourcePack {
                 continue;
             }
 
-            List<Glyph> foundGlyphs = GSON.fromJson(FileUtils.readFileToString(file, StandardCharsets.UTF_8.name()),
+            List<Glyph> foundGlyphs = GSON.fromJson(FileUtils.readFileToString(file, StandardCharsets.UTF_8),
                     new TypeToken<List<Glyph>>(){}.getType());
 
             foundGlyphs.forEach(glyph -> {
@@ -69,6 +71,16 @@ public class ResourcePack {
             });
 
             AxolotlMod.LOGGER.info("Found " + foundGlyphs.size() + " glyphs (" + file.getName() + ")");
+        }
+
+        // Load sounds
+        File soundsFile = new File("mods/Axolotl/sounds.json");
+
+        if(soundsFile.exists()) {
+            this.axolotlSounds = GSON.fromJson(FileUtils.readFileToString(soundsFile, StandardCharsets.UTF_8),
+                    new TypeToken<List<AxolotlSound>>(){}.getType());
+
+            AxolotlMod.LOGGER.info("Found " + this.axolotlSounds.size() + " custom sounds");
         }
 
         // Compress pack
@@ -106,9 +118,9 @@ public class ResourcePack {
         });
 
         fontObject.add("providers", providersArray);
-        org.apache.commons.io.FileUtils.writeStringToFile(defaultFontFile, fontObject.toString(), StandardCharsets.UTF_8);
+        FileUtils.writeStringToFile(defaultFontFile, fontObject.toString(), StandardCharsets.UTF_8);
 
-        org.apache.commons.io.FileUtils.copyDirectory(this.packDirectory, prodDir);
+        FileUtils.copyDirectory(this.packDirectory, prodDir);
 
         // Create default dirs and move them correctly
         for (String defaultDir : DEFAULT_DIRS) {
@@ -124,6 +136,36 @@ public class ResourcePack {
 
             FileUtils.moveDirectory(defaultDirFile, targetDir);
         }
+
+        // Create sounds.json with "axolotl" as namespace
+        File namespaceDir = new File("mods/Axolotl/pack-prod/assets/axolotl");
+
+        if(namespaceDir.exists())
+            namespaceDir.delete();
+
+        namespaceDir.mkdirs();
+
+        File prodSoundsFile = new File(namespaceDir, "sounds.json");
+
+        if(prodSoundsFile.exists())
+            prodSoundsFile.delete();
+
+        prodSoundsFile.createNewFile();
+
+        JsonObject soundsObject = new JsonObject();
+
+        this.axolotlSounds.forEach(axolotlSound -> {
+            JsonObject soundObject = new JsonObject();
+            soundObject.add("category", new JsonPrimitive(axolotlSound.getSoundCategory().getName()));
+
+            JsonArray soundsArray = new JsonArray();
+            soundsArray.add(new JsonPrimitive(axolotlSound.getName()));
+            soundObject.add("sounds", soundsArray);
+
+            soundsObject.add(axolotlSound.getName(), soundObject);
+        });
+
+        FileUtils.writeStringToFile(prodSoundsFile, soundsObject.toString(), StandardCharsets.UTF_8);
 
         ZipUtil.pack(prodDir, compressedPack, Deflater.BEST_COMPRESSION);
 
