@@ -120,11 +120,17 @@ public class AxolotlMod implements ModInitializer {
             );
             packetSender.sendPacket(resourcePackSendS2CPacket);
 
-            ItemStack paperItem = Items.PAPER.getDefaultStack();
+            ItemStack paperItem = Items.IRON_INGOT.getDefaultStack();
             NbtCompound nbtCompound = paperItem.getOrCreateNbt();
             nbtCompound.putInt("CustomModelData", 4);
 
+            ItemStack paperItem2 = Items.PAPER.getDefaultStack();
+            NbtCompound nbtCompound2 = paperItem2.getOrCreateNbt();
+            nbtCompound2.putInt("CustomModelData", 4);
+
             handler.player.getInventory().insertStack(paperItem);
+            handler.player.getInventory().insertStack(paperItem2);
+
 
             handler.player.sendMessage(Text.literal(this.resourcePack.shift(67, true)).append(Text.literal("Hey!")));
         });
