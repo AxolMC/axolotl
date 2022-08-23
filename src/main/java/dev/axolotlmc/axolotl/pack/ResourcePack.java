@@ -3,9 +3,11 @@ package dev.axolotlmc.axolotl.pack;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import dev.axolotlmc.axolotl.AxolotlMod;
 import dev.axolotlmc.axolotl.api.AxolotlSound;
+import dev.axolotlmc.axolotl.api.CustomItem;
 import dev.axolotlmc.axolotl.api.Glyph;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,7 @@ public class ResourcePack {
     @Getter private String lastReceivedPackHash;
     @Getter private final List<Glyph> glyphs = new ArrayList<>();
     @Getter private List<AxolotlSound> axolotlSounds = new ArrayList<>();
+    @Getter private final List<CustomItem> customItems = new ArrayList<>();
 
     public void generate() throws IOException {
         // Generate all glyphs (files with ".json"-suffix inside "glyphs" directory)
@@ -80,6 +83,9 @@ public class ResourcePack {
 
             FileUtils.moveDirectory(defaultDirFile, targetDir);
         }
+
+        // Generate custom items
+        this.generateItems();
 
         // Create sounds.json with "axolotl" as namespace
         final File namespaceDir = new File(this.mod.getModFolder(), "pack-prod/assets/axolotl");
@@ -237,6 +243,99 @@ public class ResourcePack {
 
         fontObject.add("providers", providersArray);
         FileUtils.writeStringToFile(defaultFontFile, fontObject.toString(), StandardCharsets.UTF_8);
+    }
+
+    private void generateItems() throws IOException {
+        // Load items
+        final File itemsFolder = new File(this.mod.getModFolder(), "items");
+
+        if (!itemsFolder.exists())
+            itemsFolder.mkdirs();
+
+        for (final File file : itemsFolder.listFiles()) {
+            if (file.isDirectory()) {
+                AxolotlMod.LOGGER.warn("Directories for items are currently not supported! (" + file.getAbsolutePath() + ")");
+                continue;
+            }
+
+            if (!file.getName().endsWith(".json")) {
+                AxolotlMod.LOGGER.warn("Skipping items file " + file.getName() + " as it does not end with '.json'");
+                continue;
+            }
+
+            final List<CustomItem> foundItems = GSON.fromJson(FileUtils.readFileToString(file, StandardCharsets.UTF_8),
+                    new TypeToken<List<CustomItem>>() {
+                    }.getType());
+
+            this.customItems.addAll(foundItems);
+
+            AxolotlMod.LOGGER.info("Found " + foundItems.size() + " custom items (" + file.getName() + ")");
+        }
+
+        // Generate predicates
+        final File paperItem = new File(this.mod.getModFolder(),
+                "pack-prod/assets/minecraft/models/item/paper.json");
+
+        if(paperItem.exists())
+            paperItem.delete();
+
+        paperItem.createNewFile();
+
+        JsonObject jsonObject = new JsonObject();
+
+        jsonObject.add("parent", new JsonPrimitive("item/generated"));
+        JsonObject paperItemTexturesObject = new JsonObject();
+        paperItemTexturesObject.add("layer0", new JsonPrimitive("item/paper"));
+        jsonObject.add("textures", paperItemTexturesObject);
+
+        JsonArray overridesArray = new JsonArray();
+
+        this.customItems.forEach(customItem -> {
+            // Generate custom item model
+            String model = null;
+            
+            if(customItem.isGenerateModel()) {
+                final File customItemModel = new File(this.mod.getModFolder(),
+                        "pack-prod/assets/minecraft/models/" + customItem.getName() + ".json");
+
+                try {
+                    if(customItemModel.exists())
+                        customItemModel.delete();
+
+                    customItemModel.createNewFile();
+
+                    JsonObject customItemObject = new JsonObject();
+                    customItemObject.add("parent", new JsonPrimitive(customItem.getParentModel()));
+
+                    JsonObject customItemTexturesObject = new JsonObject();
+                    customItemTexturesObject.add("layer0", new JsonPrimitive(customItem.getTextures().get(0)));
+
+                    customItemObject.add("textures", customItemTexturesObject);
+
+                    FileUtils.writeStringToFile(customItemModel, customItemObject.toString(), StandardCharsets.UTF_8);
+                    
+                    model = customItem.getName();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                model = customItem.getModel();
+            }
+
+            JsonObject overrideObject = new JsonObject();
+
+            JsonObject predicateObject = new JsonObject();
+            predicateObject.add("custom_model_data", new JsonPrimitive(customItem.getCustomModelData()));
+
+            overrideObject.add("predicate", predicateObject);
+            overrideObject.add("model", new JsonPrimitive(model));
+
+            overridesArray.add(overrideObject);
+        });
+
+        jsonObject.add("overrides", overridesArray);
+
+        FileUtils.writeStringToFile(paperItem, jsonObject.toString(), StandardCharsets.UTF_8);
     }
 
     private int getFirstCode(final int i) {

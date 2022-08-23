@@ -4,11 +4,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import dev.axolotlmc.axolotl.api.config.AxolotlConfig;
 import dev.axolotlmc.axolotl.api.config.bucket.ResourcePackConfig;
+import dev.axolotlmc.axolotl.api.serializer.ItemSerializer;
 import dev.axolotlmc.axolotl.pack.ResourcePack;
 import dev.axolotlmc.axolotl.util.ZipUtil;
 import lombok.Getter;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.ResourcePackSendS2CPacket;
 import net.minecraft.text.Text;
 import org.apache.commons.io.FileUtils;
@@ -27,8 +32,10 @@ import java.nio.charset.StandardCharsets;
 public class AxolotlMod implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("axolotl");
-    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-
+    public static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapter(Item.class, new ItemSerializer())
+            .setPrettyPrinting()
+            .create();
 
     @Getter private File modFolder;
     @Getter private File configFile;
@@ -94,7 +101,7 @@ public class AxolotlMod implements ModInitializer {
 
         // Send pack to player
         final ResourcePackConfig resourcePackConfig = this.config.getResourcePackConfig();
-        ServerPlayConnectionEvents.INIT.register((handler, server) -> {
+        ServerPlayConnectionEvents.JOIN.register((handler, packetSender, server) -> {
             if (!this.config.getResourcePackConfig().isSendPackOnJoin()) {
                 LOGGER.warn("Cancelling pack send to player due to configuration..");
                 return;
@@ -111,7 +118,13 @@ public class AxolotlMod implements ModInitializer {
                     resourcePackConfig.isForcePack(),
                     resourcePackConfig.getPromptMessage() == null ? null : Text.literal(resourcePackConfig.getPromptMessage())
             );
-            handler.player.networkHandler.sendPacket(resourcePackSendS2CPacket);
+            packetSender.sendPacket(resourcePackSendS2CPacket);
+
+            ItemStack paperItem = Items.PAPER.getDefaultStack();
+            NbtCompound nbtCompound = paperItem.getOrCreateNbt();
+            nbtCompound.putInt("CustomModelData", 4);
+
+            handler.player.getInventory().insertStack(paperItem);
 
             handler.player.sendMessage(Text.literal(this.resourcePack.shift(67, true)).append(Text.literal("Hey!")));
         });
