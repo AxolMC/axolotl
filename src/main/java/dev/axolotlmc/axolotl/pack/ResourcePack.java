@@ -3,7 +3,6 @@ package dev.axolotlmc.axolotl.pack;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import dev.axolotlmc.axolotl.AxolotlMod;
 import dev.axolotlmc.axolotl.api.AxolotlSound;
@@ -274,49 +273,49 @@ public class ResourcePack {
         }
 
         // Generate needed default items
-        customItems.stream()
+        this.customItems.stream()
                 .map(customItem -> Registry.ITEM.getId(customItem.getItem()).getPath())
                 .distinct()
                 .forEach(itemId -> {
                     final File defaultItem = new File(this.mod.getModFolder(),
                             "pack-prod/assets/minecraft/models/item/" + itemId + ".json");
 
-                    if(defaultItem.exists())
+                    if (defaultItem.exists())
                         defaultItem.delete();
 
                     try {
                         defaultItem.createNewFile();
 
-                        JsonObject jsonObject = new JsonObject();
-                        JsonArray overridesArray = new JsonArray();
+                        final JsonObject jsonObject = new JsonObject();
+                        final JsonArray overridesArray = new JsonArray();
 
                         jsonObject.add("parent", new JsonPrimitive("item/generated"));
-                        JsonObject paperItemTexturesObject = new JsonObject();
+                        final JsonObject paperItemTexturesObject = new JsonObject();
                         paperItemTexturesObject.add("layer0", new JsonPrimitive("item/" + itemId));
                         jsonObject.add("textures", paperItemTexturesObject);
 
                         // Generate predicates
                         this.customItems.forEach(customItem -> {
-                            if(!Registry.ITEM.getId(customItem.getItem()).getPath().equals(itemId))
+                            if (!Registry.ITEM.getId(customItem.getItem()).getPath().equals(itemId))
                                 return;
 
                             // Generate custom item model
                             String model = null;
 
-                            if(customItem.isGenerateModel()) {
+                            if (customItem.isGenerateModel()) {
                                 final File customItemModel = new File(this.mod.getModFolder(),
                                         "pack-prod/assets/minecraft/models/" + customItem.getName() + ".json");
 
                                 try {
-                                    if(customItemModel.exists())
+                                    if (customItemModel.exists())
                                         customItemModel.delete();
 
                                     customItemModel.createNewFile();
 
-                                    JsonObject customItemObject = new JsonObject();
+                                    final JsonObject customItemObject = new JsonObject();
                                     customItemObject.add("parent", new JsonPrimitive(customItem.getParentModel()));
 
-                                    JsonObject customItemTexturesObject = new JsonObject();
+                                    final JsonObject customItemTexturesObject = new JsonObject();
                                     customItemTexturesObject.add("layer0", new JsonPrimitive(customItem.getTextures().get(0)));
 
                                     customItemObject.add("textures", customItemTexturesObject);
@@ -324,16 +323,16 @@ public class ResourcePack {
                                     FileUtils.writeStringToFile(customItemModel, customItemObject.toString(), StandardCharsets.UTF_8);
 
                                     model = customItem.getName();
-                                } catch (IOException e) {
+                                } catch (final IOException e) {
                                     e.printStackTrace();
                                 }
                             } else {
                                 model = customItem.getModel();
                             }
 
-                            JsonObject overrideObject = new JsonObject();
+                            final JsonObject overrideObject = new JsonObject();
 
-                            JsonObject predicateObject = new JsonObject();
+                            final JsonObject predicateObject = new JsonObject();
                             predicateObject.add("custom_model_data", new JsonPrimitive(customItem.getCustomModelData()));
 
                             overrideObject.add("predicate", predicateObject);
@@ -345,7 +344,7 @@ public class ResourcePack {
                         jsonObject.add("overrides", overridesArray);
 
                         FileUtils.writeStringToFile(defaultItem, jsonObject.toString(), StandardCharsets.UTF_8);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         e.printStackTrace();
                     }
                 });

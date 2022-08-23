@@ -11,9 +11,6 @@ import lombok.Getter;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.ResourcePackSendS2CPacket;
 import net.minecraft.text.Text;
 import org.apache.commons.io.FileUtils;
@@ -118,19 +115,8 @@ public class AxolotlMod implements ModInitializer {
                     resourcePackConfig.isForcePack(),
                     resourcePackConfig.getPromptMessage() == null ? null : Text.literal(resourcePackConfig.getPromptMessage())
             );
+
             packetSender.sendPacket(resourcePackSendS2CPacket);
-
-            ItemStack paperItem = Items.IRON_INGOT.getDefaultStack();
-            NbtCompound nbtCompound = paperItem.getOrCreateNbt();
-            nbtCompound.putInt("CustomModelData", 4);
-
-            ItemStack paperItem2 = Items.PAPER.getDefaultStack();
-            NbtCompound nbtCompound2 = paperItem2.getOrCreateNbt();
-            nbtCompound2.putInt("CustomModelData", 4);
-
-            handler.player.getInventory().insertStack(paperItem);
-            handler.player.getInventory().insertStack(paperItem2);
-
 
             handler.player.sendMessage(Text.literal(this.resourcePack.shift(67, true)).append(Text.literal("Hey!")));
         });
