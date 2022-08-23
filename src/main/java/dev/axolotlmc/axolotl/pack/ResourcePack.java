@@ -290,9 +290,9 @@ public class ResourcePack {
                         final JsonArray overridesArray = new JsonArray();
 
                         jsonObject.add("parent", new JsonPrimitive("item/generated"));
-                        final JsonObject paperItemTexturesObject = new JsonObject();
-                        paperItemTexturesObject.add("layer0", new JsonPrimitive("item/" + itemId));
-                        jsonObject.add("textures", paperItemTexturesObject);
+                        final JsonObject defaultItemTexturesObject = new JsonObject();
+                        defaultItemTexturesObject.add("layer0", new JsonPrimitive("item/" + itemId));
+                        jsonObject.add("textures", defaultItemTexturesObject);
 
                         // Generate predicates
                         this.customItems.forEach(customItem -> {
